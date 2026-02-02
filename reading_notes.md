@@ -152,3 +152,26 @@ Branch instructions (e.g. bne) and function call instructions (e.g. jal) specify
     - but for compatibility with 2 byte instructions, distance is encoded in half instructions (i.e. units of 2 bytes)
 
 - long distance branches are dealt with by flipping the branch condition (e.g. `bne` -> `beq`), which then decides whether to skip a long-range `jal`.
+
+# Chapter 4 - The Processor
+
+## Hazards
+
+Hazards occur when the next instruction cannot execute in the next clock cycle.
+
+- structural hazard:
+    - hardware cannot support a combination of instructions, preventing pipelining
+    - easyish to prevent in pipeline-designed processors
+- data hazard:
+    - dependence of an earlier stage of an instruction on some later stage of prior instruction
+        - second instruction must wait until first instruction has finished the relevant stage
+    - can be resolved by forwarding: don't wait for i1 to reach the write stage, just forward output of ALU directly to the register read stage of i2.
+        - even with forwarding, might need to stall: some dependencies are more than one stage long
+        - `add` needs at least one instruction between a `lw` on which it depends for forwarding to work.
+            - because `add` depends on `lw` to write to registers for its input to the ALU; forwarding can happen once `lw` has read from memory; memory access is one stage after the ALU; to ensure that the memory access is done before the ALU starts, need the memory access to happen two cycles before the ALU execute. By default, `lw` will start one cycle ahead; placing an extra instruction in between ensures forwarding can take place.
+        - if `sw` depends on `add`, forwarding can take place straightaway, since `sw` depends at stage MEM on the output of the EX stage of `add`, which is at minimum two cycles behind
+- control hazard:
+    - a branch decision depends on the results of a prior instruction.
+        - can either stall - slow
+        - or predict whether the branch will be taken
+            - fast and cool
