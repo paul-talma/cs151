@@ -13,6 +13,7 @@
 
 #include "core.h"
 #include "debug.h"
+#include "instr.h"
 #include "processor_impl.h"
 #include "types.h"
 #include <assert.h>
@@ -188,7 +189,12 @@ bool Core::check_data_hazards(const Instr &instr) {
 
     if (!ex_mem_.empty()) {
         auto &ex_data = ex_mem_.data();
-        // TODO: check LDAD instruction data hazards in EX/MEM
+        auto &ex_instr = *ex_data.instr;
+        // TODO: check LOAD instruction data hazards in EX/MEM
+        if ((exe_flags.use_rs1 && ex_instr.getRd() == instr.getRs1()) ||
+            (exe_flags.use_rs2 && ex_instr.getRd() == instr.getRs2())) {
+            return ex_instr.getOpcode() == Opcode::L;
+        }
     }
 
     return false;
@@ -201,12 +207,22 @@ bool Core::data_forwarding(uint32_t reg, uint32_t *data) {
         auto &ex_data = ex_mem_.data();
         auto &ex_instr = *ex_data.instr;
         // TODO: check data forwarding from EX/MEM
+        auto rd = ex_instr.getRd();
+        if (ex_instr.getExeFlags().use_rd && reg == rd) {
+            *data = ex_data.result;
+            forwarded = true;
+        }
     }
 
     if (!forwarded && !mem_wb_.empty()) {
         auto &mem_data = mem_wb_.data();
         auto &mem_instr = *mem_data.instr;
         // TODO: check data forwarding from MEM/WB
+        auto rd = mem_instr.getRd();
+        if (mem_instr.getExeFlags().use_rd && reg == rd) {
+            *data = mem_data.result;
+            forwarded = true;
+        }
     }
 
     return forwarded;
