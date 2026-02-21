@@ -93,20 +93,20 @@ void GShare::update_bht(uint32_t PC, bool taken) {
 }
 
 void GShare::update_btb(uint32_t PC, uint32_t next_PC) {
-    uint32_t btb_index = (PC >> 2) ^ BHR_;
-    BTB_entry_t row = BTB_[btb_index];
-    row.valid = true;
-    row.target = next_PC;
-    row.tag = (PC >> (BTB_shift_ + 2));
+    uint32_t btb_index = (PC >> 2) & BTB_mask_;
+    BTB_entry_t *entry = &BTB_[btb_index];
+    entry->valid = true;
+    entry->target = next_PC;
+    entry->tag = (PC >> (BTB_shift_ + 2));
 }
 
-void GShare::update_bhr(bool taken) { BHR_ = BHR_ << 1 | taken; }
+void GShare::update_bhr(bool taken) { BHR_ = (BHR_ << 1 | taken) & BHR_mask_; }
 
-uint32_t inc_two_bit_counter(uint32_t count) {
-    return count == 3 ? count : count++;
+uint32_t GShare::inc_two_bit_counter(uint32_t count) {
+    return count == 3 ? count : ++count;
 }
-uint32_t dec_two_bit_counter(uint32_t count) {
-    return count == 0 ? count : count--;
+uint32_t GShare::dec_two_bit_counter(uint32_t count) {
+    return count == 0 ? count : --count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
